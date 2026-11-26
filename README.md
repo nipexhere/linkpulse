@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Linkpulse
 
-## Getting Started
+A link shortener with built-in click analytics, built with the Next.js App Router.
 
-First, run the development server:
+- **Fast redirects**: `/[slug]` is a route handler that returns a 307 immediately and records the click with `after()`, so logging never delays the visitor. Bots are skipped.
+- **Analytics**: daily clicks for the last 30 days plus top referrers, countries, devices and browsers. Charts are SVG rendered on the server, with no chart library or client JavaScript.
+- **Public stats pages**: `/s/[slug]` shows read-only stats for any link.
+- **Owner dashboard**: `/dashboard` creates (random or custom slugs) and deletes links. It is protected by `proxy.ts` and signed, expiring session cookies, and every server action checks the session again.
+- **Cache Components / Partial Prerendering**: each page ships a static shell and streams its data in behind `<Suspense>`.
+
+## Stack
+
+Next.js 16 (App Router, Server Actions, Proxy, Cache Components) · React 19 · TypeScript · Tailwind CSS 4 · Postgres ([Neon](https://neon.tech) in production, embedded [PGlite](https://pglite.dev) locally) · `node:test`
+
+## Run locally
 
 ```bash
+npm install
+cp .env.example .env.local   # then set ADMIN_PASSWORD and SESSION_SECRET
+npm run seed                 # optional: sample links and 30 days of clicks
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Without `DATABASE_URL`, data lives in an embedded Postgres in `./.pglite`, so you don't need a database server. Stop the dev server before running `npm run seed`, because PGlite allows one process at a time.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm test          # unit tests for validation and session signing
+npm run typecheck
+npm run lint
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deploy to Vercel
 
-## Learn More
+1. Create a free Postgres database on [Neon](https://neon.tech) and copy its connection string.
+2. Import this repository in Vercel.
+3. Add environment variables: `DATABASE_URL`, `ADMIN_PASSWORD` and `SESSION_SECRET` (a long random string).
+4. Deploy. Tables are created automatically on the first request.
 
-To learn more about Next.js, take a look at the following resources:
+Country data comes from Vercel's `x-vercel-ip-country` header, so it shows as "Unknown" when running locally.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project layout
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+  proxy.ts                 redirects signed-out visitors away from /dashboard
+  app/
+    [slug]/route.ts        redirect + click logging
+    s/[slug]/page.tsx      public stats page
+    dashboard/page.tsx     owner dashboard
+    login/page.tsx
+    actions.ts             server actions: login, logout, create, delete
+  lib/
+    db.ts                  Neon / PGlite adapter and schema
+    links.ts               queries
+    session.ts             HMAC-signed session tokens (Web Crypto)
+    validate.ts            URL and slug validation
+scripts/seed.ts            local demo data
+```
