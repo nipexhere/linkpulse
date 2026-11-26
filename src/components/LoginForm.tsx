@@ -8,7 +8,7 @@ export function LoginForm({ next }: { next?: string }) {
 
   return (
     <form action={action} className="space-y-4">
-      <input type="hidden" name="next" value={next ?? "/dashboard"} />
+      <input type="hidden" name="next" value={next ?? "/admin"} />
       <label className="block">
         <span className="mb-1.5 block text-sm font-medium">Password</span>
         <input

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { createLink } from "@/app/actions";
 import { CopyButton } from "./CopyButton";
@@ -19,7 +20,7 @@ export function CreateLinkForm() {
           <input name="url" required placeholder="https://example.com/a/very/long/page" className={input} />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-xs font-medium text-muted">Custom slug (optional)</span>
+          <span className="mb-1.5 block text-xs font-medium text-muted">Custom ending (optional)</span>
           <input name="slug" placeholder="my-link" className={input} />
         </label>
         <button
@@ -33,8 +34,11 @@ export function CreateLinkForm() {
         {state?.error && <p className="mt-3 text-red-600 dark:text-red-400">{state.error}</p>}
         {shortUrl && (
           <p className="mt-3 flex flex-wrap items-center gap-2">
-            Created <span className="font-mono font-medium text-accent">{shortUrl}</span>
+            Your short link: <span className="font-mono font-medium text-accent">{shortUrl}</span>
             <CopyButton value={shortUrl} />
+            <Link href={`/s/${state?.created}`} className="text-xs font-medium text-muted underline hover:text-foreground">
+              View stats
+            </Link>
           </p>
         )}
       </div>

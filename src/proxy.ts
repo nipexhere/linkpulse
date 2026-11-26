@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
-// Optimistic check: bounce signed-out visitors before the dashboard renders.
+// Optimistic check: bounce signed-out visitors before the admin page renders.
 // Server actions verify the session again before touching data.
 export async function proxy(request: NextRequest) {
   const signedIn = await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value);
@@ -14,5 +14,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/admin/:path*"],
 };

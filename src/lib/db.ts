@@ -21,6 +21,12 @@ const SCHEMA = [
     browser TEXT
   )`,
   `CREATE INDEX IF NOT EXISTS clicks_link_time ON clicks (link_id, created_at)`,
+  // Public link creation: owner_id is the anonymous visitor cookie that created the link
+  // (NULL for links made by the admin), creator_ip is a keyed hash of their IP for rate limiting.
+  `ALTER TABLE links ADD COLUMN IF NOT EXISTS owner_id TEXT`,
+  `ALTER TABLE links ADD COLUMN IF NOT EXISTS creator_ip TEXT`,
+  `CREATE INDEX IF NOT EXISTS links_owner ON links (owner_id, created_at)`,
+  `CREATE INDEX IF NOT EXISTS links_creator_ip ON links (creator_ip, created_at)`,
 ];
 
 async function connect(): Promise<Query> {

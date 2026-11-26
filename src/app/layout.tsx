@@ -30,8 +30,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </span>
               Linkpulse
             </Link>
-            <Link href="/dashboard" className="text-sm text-muted hover:text-foreground">
-              Dashboard
+            <Link href="/" className="text-sm text-muted hover:text-foreground">
+              Shorten a link
             </Link>
           </nav>
         </header>
@@ -41,6 +41,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <a href="https://nipexfolio.vercel.app" className="underline hover:text-foreground">
             Adebayo Oseni
           </a>
+          {" · "}
+          <Link href="/admin" className="underline hover:text-foreground">
+            Admin
+          </Link>
         </footer>
       </body>
     </html>

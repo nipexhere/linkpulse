@@ -1,6 +1,6 @@
 // Pure helpers shared by server actions, the redirect handler and tests.
 
-export const RESERVED_SLUGS = new Set(["api", "dashboard", "login", "logout", "s", "_next", "favicon.ico"]);
+export const RESERVED_SLUGS = new Set(["admin", "api", "dashboard", "login", "logout", "s", "_next", "favicon.ico"]);
 
 const SLUG_PATTERN = /^[A-Za-z0-9_-]{3,32}$/;
 const SLUG_ALPHABET = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -51,4 +51,15 @@ export function referrerHost(referer: string | null): string | null {
   } catch {
     return null;
   }
+}
+
+// Anonymous visitor IDs are 128-bit random hex strings stored in a cookie.
+export function isOwnerId(value: string | undefined): value is string {
+  return typeof value === "string" && /^[a-f0-9]{32}$/.test(value);
+}
+
+// The visitor's IP: the first entry of x-forwarded-for (set by Vercel), else x-real-ip.
+export function clientIp(forwardedFor: string | null, realIp: string | null): string {
+  const first = forwardedFor?.split(",")[0]?.trim();
+  return first || realIp?.trim() || "unknown";
 }

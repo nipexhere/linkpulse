@@ -1,55 +1,85 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { CreateLinkForm } from "@/components/CreateLinkForm";
+import { LinkList, LinkListSkeleton } from "@/components/LinkList";
+import { getOrigin } from "@/lib/format";
+import { listLinks } from "@/lib/links";
+import { getOwnerId } from "@/lib/visitor";
 
-const FEATURES = [
+const STEPS = [
   {
-    title: "Fast redirects",
-    body: "A route handler answers with a 307 straight away and logs the click with after(), so analytics never slow the visitor down.",
+    title: "1. Paste a long link",
+    body: "Drop in any web address and, if you like, choose a custom ending such as /my-cv. No account or sign-up needed.",
   },
   {
-    title: "Click analytics",
-    body: "Daily clicks for the last 30 days plus top referrers, countries, devices and browsers, charted on the server with no client JavaScript.",
+    title: "2. Share the short one",
+    body: "Copy your short link and put it in your bio, a message, a flyer or a QR code. Visitors go straight to your page.",
   },
   {
-    title: "Public stats pages",
-    body: "Open /s/your-slug for read-only stats you can share, while creating and deleting links stays behind the owner login.",
+    title: "3. See who clicked",
+    body: "Every link gets a free stats page: clicks per day, where people came from, their country, device and browser.",
   },
 ];
 
 export default function Home({ searchParams }: PageProps<"/">) {
   return (
-    <div className="space-y-16">
+    <div className="space-y-14">
       <Suspense>
         <MissingNotice searchParams={searchParams} />
       </Suspense>
 
-      <section className="max-w-2xl pt-6">
-        <p className="mb-4 inline-block rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent">
-          Next.js App Router · Postgres
-        </p>
-        <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Short links that show who&apos;s clicking.</h1>
-        <p className="mt-5 text-lg text-muted">
-          Linkpulse turns long URLs into short ones and tracks every visit: when, where from and on what device.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/dashboard" className="rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white hover:opacity-90">
-            Open dashboard
-          </Link>
-          <Link href="/s/portfolio" className="rounded-lg border border-line px-5 py-2.5 text-sm font-medium hover:bg-surface">
-            See example stats
-          </Link>
+      <section className="space-y-6 pt-2">
+        <div className="max-w-2xl">
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Shorten a link. See who clicks it.</h1>
+          <p className="mt-4 text-lg text-muted">
+            Free short links with click stats built in. No account needed: paste a URL below and you&apos;re done.
+          </p>
         </div>
+        <CreateLinkForm />
       </section>
 
+      <Suspense fallback={<LinkListSkeleton />}>
+        <YourLinks />
+      </Suspense>
+
       <section className="grid gap-4 sm:grid-cols-3">
-        {FEATURES.map((feature) => (
-          <article key={feature.title} className="rounded-xl border border-line bg-surface p-5">
-            <h2 className="font-medium">{feature.title}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted">{feature.body}</p>
+        {STEPS.map((step) => (
+          <article key={step.title} className="rounded-xl border border-line bg-surface p-5">
+            <h2 className="font-medium">{step.title}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted">{step.body}</p>
           </article>
         ))}
       </section>
+
+      <p className="text-sm text-muted">
+        Curious what the stats look like?{" "}
+        <Link href="/s/portfolio" className="font-medium text-accent hover:underline">
+          See an example stats page →
+        </Link>
+      </p>
     </div>
+  );
+}
+
+// The links this browser has created, identified by an anonymous cookie.
+async function YourLinks() {
+  const ownerId = await getOwnerId();
+  if (!ownerId) return null;
+
+  const [links, origin] = await Promise.all([listLinks(ownerId), getOrigin()]);
+  if (links.length === 0) return null;
+
+  return (
+    <section id="your-links" className="space-y-3">
+      <div>
+        <h2 className="text-xl font-semibold tracking-tight">Your links</h2>
+        <p className="mt-1 text-sm text-muted">
+          Saved in this browser, so you can come back to check your clicks. Open it on another device and they
+          won&apos;t show up there.
+        </p>
+      </div>
+      <LinkList links={links} origin={origin} />
+    </section>
   );
 }
 
@@ -59,7 +89,8 @@ async function MissingNotice({ searchParams }: Pick<PageProps<"/">, "searchParam
   if (typeof missing !== "string") return null;
   return (
     <p role="status" className="rounded-lg border border-line bg-surface px-4 py-3 text-sm">
-      There&apos;s no short link called <span className="font-mono font-medium">/{missing}</span>.
+      There&apos;s no short link called <span className="font-mono font-medium">/{missing}</span>. You can create it
+      below.
     </p>
   );
 }

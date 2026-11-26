@@ -32,16 +32,36 @@ export type LinkStats = {
   browsers: Breakdown;
 };
 
-export async function insertLink(slug: string, url: string): Promise<"ok" | "taken"> {
+export type Creator = { ownerId: string | null; ipHash: string | null };
+
+export async function insertLink(
+  slug: string,
+  url: string,
+  creator: Creator = { ownerId: null, ipHash: null },
+): Promise<"ok" | "taken"> {
   const rows = await sql(
-    "INSERT INTO links (slug, url) VALUES ($1, $2) ON CONFLICT (slug) DO NOTHING RETURNING id",
-    [slug, url],
+    `INSERT INTO links (slug, url, owner_id, creator_ip) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (slug) DO NOTHING RETURNING id`,
+    [slug, url, creator.ownerId, creator.ipHash],
   );
   return rows.length ? "ok" : "taken";
 }
 
-export async function deleteLink(id: number): Promise<void> {
-  await sql("DELETE FROM links WHERE id = $1", [id]);
+// Pass ownerId to delete only a link that this visitor created; omit it (admin) to delete any link.
+export async function deleteLink(id: number, ownerId?: string): Promise<void> {
+  if (ownerId === undefined) {
+    await sql("DELETE FROM links WHERE id = $1", [id]);
+  } else {
+    await sql("DELETE FROM links WHERE id = $1 AND owner_id = $2", [id, ownerId]);
+  }
+}
+
+export async function countRecentLinksByIp(ipHash: string, windowMinutes: number): Promise<number> {
+  const [{ count }] = await sql<{ count: number }>(
+    "SELECT count(*)::int AS count FROM links WHERE creator_ip = $1 AND created_at > now() - make_interval(mins => $2)",
+    [ipHash, windowMinutes],
+  );
+  return count;
 }
 
 export async function getLinkBySlug(slug: string): Promise<Link | null> {
@@ -49,17 +69,21 @@ export async function getLinkBySlug(slug: string): Promise<Link | null> {
   return link ?? null;
 }
 
-export async function listLinks(): Promise<LinkSummary[]> {
-  return sql<LinkSummary>(`
-    SELECT l.id, l.slug, l.url, l.created_at,
+// All links (admin), or only the links created by one anonymous visitor.
+export async function listLinks(ownerId?: string): Promise<LinkSummary[]> {
+  const filter = ownerId === undefined ? "" : "WHERE l.owner_id = $1";
+  return sql<LinkSummary>(
+    `SELECT l.id, l.slug, l.url, l.created_at,
       count(c.id)::int AS total_clicks,
       count(c.id) FILTER (WHERE c.created_at > now() - interval '7 days')::int AS week_clicks,
       max(c.created_at) AS last_click
     FROM links l
     LEFT JOIN clicks c ON c.link_id = l.id
+    ${filter}
     GROUP BY l.id
-    ORDER BY l.created_at DESC
-  `);
+    ORDER BY l.created_at DESC`,
+    ownerId === undefined ? [] : [ownerId],
+  );
 }
 
 export async function recordClick(linkId: number, click: Click): Promise<void> {

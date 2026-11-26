@@ -13,8 +13,8 @@ export const metadata: Metadata = { title: "Link stats" };
 export default function StatsPage({ params }: PageProps<"/s/[slug]">) {
   return (
     <div className="space-y-8">
-      <Link href="/dashboard" className="text-sm text-muted hover:text-foreground">
-        ← Dashboard
+      <Link href="/" className="text-sm text-muted hover:text-foreground">
+        ← Shorten another link
       </Link>
       <Suspense fallback={<StatsSkeleton />}>
         {params.then(({ slug }) => (
